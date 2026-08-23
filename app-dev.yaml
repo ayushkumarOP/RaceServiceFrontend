@@ -1,7 +1,7 @@
 # GCP App Engine configuration for RaceService Frontend - DEV
 # Deployed automatically on feature branch pushes
 
-runtime: nodejs20
+runtime: nodejs22
 
 service: raceservice-frontend-dev
 
