@@ -1,0 +1,36 @@
+# GCP App Engine configuration for RaceService Frontend - DEV
+# Deployed automatically on feature branch pushes
+
+runtime: nodejs20
+
+service: raceservice-frontend-dev
+
+instance_class: F1
+
+handlers:
+  # Serve static files from dist folder
+  - url: /assets
+    static_dir: dist/assets
+    secure: always
+
+  - url: /vite.svg
+    static_files: dist/vite.svg
+    upload: dist/vite.svg
+    secure: always
+
+  # Serve index.html for all other routes (SPA support)
+  - url: /.*
+    static_files: dist/index.html
+    upload: dist/index.html
+    secure: always
+
+# Environment variables (add your backend URL here later)
+env_variables:
+  NODE_ENV: "development"
+  # VITE_API_URL: "https://your-dev-backend-url.com"
+
+# Automatic scaling settings - minimal for dev
+automatic_scaling:
+  min_instances: 0
+  max_instances: 1
+  target_cpu_utilization: 0.65
