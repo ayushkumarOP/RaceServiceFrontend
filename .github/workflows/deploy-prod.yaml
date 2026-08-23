@@ -1,0 +1,56 @@
+# Deploy to GCP App Engine - Production Environment
+# Triggered on push to main branch
+
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          # Add environment-specific variables here
+          VITE_ENV: production
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy to App Engine (Production)
+        run: |
+          gcloud app deploy app.yaml --quiet --project=${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Output URL
+        run: |
+          echo "🚀 Production deployment complete!"
+          echo "URL: https://raceservice-frontend-dot-${{ secrets.GCP_PROJECT_ID }}.appspot.com"
+          echo "Or if using default service: https://${{ secrets.GCP_PROJECT_ID }}.appspot.com"
