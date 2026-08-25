@@ -1,1 +1,23 @@
 @import "tailwindcss";
+
+html, body, #root {
+	height: 100%;
+}
+
+body {
+	background-image: url('/images/background_image.jpg');
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Optional: light overlay for better text contrast */
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	background: rgba(0,0,0,0.18);
+	pointer-events: none;
+}
