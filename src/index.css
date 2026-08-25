@@ -1,23 +1,91 @@
 @import "tailwindcss";
 
-html, body, #root {
-	height: 100%;
+/* ------------------------------------------------------------------ */
+/* F1 Hub theme tokens (Tailwind v4 CSS-first)                         */
+/* ------------------------------------------------------------------ */
+@theme {
+  --color-race-primary: #0c0c14;
+  --color-race-secondary: #16161f;
+  --color-race-accent: #e0452b;
+  --color-race-dark: #0c0c14;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+
+  --animate-blob: blob 14s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-grow-x: grow-x 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-grow-y: grow-y 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes blob {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(40px, -30px) scale(1.1);
+    }
+    66% {
+      transform: translate(-30px, 25px) scale(0.95);
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes grow-x {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes grow-y {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+}
+
+.origin-left--anim {
+  transform-origin: left center;
+}
+.origin-bottom--anim {
+  transform-origin: center bottom;
+}
+
+html,
+body,
+#root {
+  height: 100%;
 }
 
 body {
-	background-image: url('https://res.cloudinary.com/efl2hiv9/image/upload/f_auto,q_auto/background_image');
-	background-size: cover;
-	background-position: center;
-	background-repeat: no-repeat;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
+  background-color: #0c0c14;
+  background-image: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #fff;
+  overflow-x: hidden;
 }
 
-/* Optional: light overlay for better text contrast */
-body::before {
-	content: "";
-	position: fixed;
-	inset: 0;
-	background: rgba(0,0,0,0.18);
-	pointer-events: none;
+html {
+  scroll-behavior: smooth;
+}
+
+.animate-delay-1 {
+  animation-delay: 0.2s;
+}
+.animate-delay-2 {
+  animation-delay: 0.9s;
 }
