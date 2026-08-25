@@ -5,7 +5,7 @@ html, body, #root {
 }
 
 body {
-	background-image: url('/images/background_image.jpg');
+	background-image: url('https://res.cloudinary.com/efl2hiv9/image/upload/f_auto,q_auto/background_image');
 	background-size: cover;
 	background-position: center;
 	background-repeat: no-repeat;
