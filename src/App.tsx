@@ -1,14 +1,22 @@
+import Navbar from "./components/Navbar";
+import Hero from "./components/Hero";
+import FeatureSection from "./components/FeatureSection";
+import CtaBand from "./components/CtaBand";
+import Footer from "./components/Footer";
+import { FEATURES } from "./components/features";
+
 function App() {
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-white mb-4">
-          Welcome to RaceService-2
-        </h1>
-        <p className="text-gray-400 text-lg">
-          Your racing telemetry and forum platform
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#0c0c14] text-white font-sans">
+      <Navbar />
+      <main>
+        <Hero />
+        {FEATURES.map((feature, index) => (
+          <FeatureSection key={feature.id} feature={feature} index={index} />
+        ))}
+        <CtaBand />
+      </main>
+      <Footer />
     </div>
   );
 }
