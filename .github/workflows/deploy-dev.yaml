@@ -1,4 +1,4 @@
-# Deploy to GCP App Engine - Development Environment
+# Build and push the container image to Google Artifact Registry for the Development environment
 # Triggered on push to any branch except main
 
 name: Deploy to Dev
@@ -8,32 +8,21 @@ on:
     branches-ignore:
       - main
 
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-
 jobs:
-  build-and-deploy:
-    name: Build and Deploy to Dev
+  build-and-push:
+    name: Build and Push Docker Image to GAR (Dev)
     runs-on: ubuntu-latest
+
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GAR_LOCATION: us-central1
+      GAR_REPOSITORY: raceservice-frontend
+      IMAGE_NAME: raceservice-frontend
+      IMAGE_TAG: dev-${{ github.sha }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-        env:
-          # Add environment-specific variables here
-          VITE_ENV: development
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -45,11 +34,28 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Deploy to App Engine (Dev)
-        run: |
-          gcloud app deploy app-dev.yaml --quiet --project=${{ secrets.GCP_PROJECT_ID }}
+      - name: Enable Artifact Registry API
+        run: gcloud services enable artifactregistry.googleapis.com --project=${{ env.PROJECT_ID }}
 
-      - name: Output URL
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build Docker image
         run: |
-          echo "🚀 Dev deployment complete!"
-          echo "URL: https://raceservice-frontend-dev-dot-${{ secrets.GCP_PROJECT_ID }}.appspot.com"
+          docker build \
+            --build-arg VITE_ENV=development \
+            -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:dev-latest \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:dev-latest
+
+      - name: Output image info
+        run: |
+          echo "🚀 Dev image built and pushed successfully!"
+          echo "Image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
+
