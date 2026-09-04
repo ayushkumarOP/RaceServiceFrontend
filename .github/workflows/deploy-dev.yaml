@@ -1,4 +1,4 @@
-# Deploy to GCP App Engine - Development Environment
+# Build and deploy Docker image for the Development environment
 # Triggered on push to any branch except main
 
 name: Deploy to Dev
@@ -8,48 +8,43 @@ on:
     branches-ignore:
       - main
 
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-
 jobs:
   build-and-deploy:
-    name: Build and Deploy to Dev
+    name: Build and Deploy Docker Image to Dev
     runs-on: ubuntu-latest
+
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/raceservice-frontend
+      IMAGE_TAG: dev-${{ github.sha }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          node-version: '22'
-          cache: 'npm'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-        env:
-          # Add environment-specific variables here
-          VITE_ENV: development
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            VITE_ENV=development
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_NAME }}:dev-latest
 
-      - name: Setup Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-      - name: Deploy to App Engine (Dev)
+      - name: Output image info
         run: |
-          gcloud app deploy app-dev.yaml --quiet --project=${{ secrets.GCP_PROJECT_ID }}
+          echo "🚀 Dev image built and pushed successfully!"
+          echo "Image: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
 
-      - name: Output URL
-        run: |
-          echo "🚀 Dev deployment complete!"
-          echo "URL: https://raceservice-frontend-dev-dot-${{ secrets.GCP_PROJECT_ID }}.appspot.com"
+
