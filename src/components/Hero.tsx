@@ -106,13 +106,8 @@ function CalendarChip() {
 export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-16">
-      {/* Animated gradient blobs (Discord-style ambient backglow) */}
-      <div aria-hidden className="absolute inset-0">
-        <div className="absolute -top-32 -left-32 w-[42rem] h-[42rem] rounded-full bg-race-accent/25 blur-[120px] animate-blob" />
-        <div className="absolute top-1/3 -right-40 w-[36rem] h-[36rem] rounded-full bg-indigo-600/25 blur-[120px] animate-blob" style={{ animationDelay: "-6s" }} />
-        <div className="absolute bottom-0 left-1/3 w-[30rem] h-[30rem] rounded-full bg-amber-500/15 blur-[110px] animate-blob" style={{ animationDelay: "-3s" }} />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:56px_56px]" />
-      </div>
+      <div aria-hidden className="absolute inset-0 bg-[url('/images/background_image.jpg')] bg-cover bg-center opacity-35" />
+      <div aria-hidden className="absolute inset-0 bg-[#0c0c14]/75" />
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
         <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-white/70 mb-6">
@@ -136,14 +131,14 @@ export default function Hero() {
 
         <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
-            href="#"
+            href="#support"
             className="inline-flex items-center gap-2 rounded-full bg-white text-[#0c0c14] px-7 py-3.5 text-base font-semibold transition-all hover:bg-white/90 hover:shadow-xl hover:shadow-white/10 active:scale-95"
           >
             <CheckerFlag className="w-5 h-5 text-race-accent" />
             Get Started — it's free
           </a>
           <a
-            href="#"
+            href="#standings"
             className="inline-flex items-center rounded-full border border-white/25 text-white px-7 py-3.5 text-base font-semibold transition-all hover:bg-white/10 hover:border-white/40 active:scale-95"
           >
             Open F1 Hub in your Browser

@@ -68,6 +68,7 @@ html,
 body,
 #root {
   height: 100%;
+  max-width: 100%;
 }
 
 body {
@@ -77,6 +78,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: #fff;
   overflow-x: hidden;
+}
+
+* {
+  min-width: 0;
+}
+
+:focus-visible {
+  outline: 2px solid #e0452b;
+  outline-offset: 3px;
 }
 
 html {

@@ -3,19 +3,8 @@ import { CheckerFlag } from "./Navbar";
 export default function CtaBand() {
   return (
     <section className="relative px-4 sm:px-6 lg:px-8 py-16 sm:py-24 overflow-hidden">
-      <div className="max-w-5xl mx-auto relative rounded-3xl border border-white/10 bg-gradient-to-br from-[#181826] via-[#1b1b2c] to-[#0d0d14] p-8 sm:p-14 text-center shadow-2xl shadow-black/50">
-        {/* ambient glow */}
-        <div
-          aria-hidden
-          className="absolute -top-24 -left-16 w-80 h-80 rounded-full bg-race-accent/20 blur-[100px] animate-blob"
-        />
-        <div
-          aria-hidden
-          className="absolute -bottom-24 -right-16 w-80 h-80 rounded-full bg-indigo-600/20 blur-[100px] animate-blob"
-          style={{ animationDelay: "-6s" }}
-        />
-
-        <div className="relative">
+      <div className="max-w-5xl mx-auto relative border border-white/10 bg-[#181826] p-8 sm:p-14 text-center shadow-2xl shadow-black/50">
+        <div>
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-race-accent">
             Reliability you can trust
           </p>
@@ -35,7 +24,7 @@ export default function CtaBand() {
               View Race Calendar
             </a>
             <a
-              href="#"
+              href="#support"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 text-white px-8 py-3.5 text-base font-semibold transition-all hover:bg-white/10 active:scale-95"
             >
               <CheckerFlag className="w-5 h-5 text-race-accent" />
