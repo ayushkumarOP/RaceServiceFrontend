@@ -176,12 +176,9 @@ function CommunityVisual() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-white">Featured Communities</h3>
-        <button
-          type="button"
-          className="text-xs font-semibold text-race-accent hover:underline"
-        >
+        <a href="#support" className="text-xs font-semibold text-race-accent hover:underline">
           Join a league →
-        </button>
+        </a>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {teams.map((t) => (

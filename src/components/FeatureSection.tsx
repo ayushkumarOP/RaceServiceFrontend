@@ -38,15 +38,6 @@ export default function FeatureSection({
 
         {/* Visual */}
         <div className={`order-2 ${flipped ? "lg:order-1" : "lg:order-2"}`}>
-          <div
-            aria-hidden
-            className="absolute -inset-5 rounded-3xl blur-2xl opacity-70 animate-blob"
-            style={{
-              background: `radial-gradient(closest-side at 50% 50%, ${
-                flipped ? "#dc000022" : "#2563eb1c"
-              }, transparent)`,
-            }}
-          />
           <div className="relative rounded-2xl bg-[#12121b] border border-white/10 p-5 sm:p-6 shadow-2xl shadow-black/50">
             {feature.visual}
           </div>

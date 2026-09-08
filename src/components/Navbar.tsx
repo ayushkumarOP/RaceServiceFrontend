@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
 const NAV_LINKS = [
-  "Live Standings",
-  "Schedule",
-  "Telemetry",
-  "News",
-  "Community",
-  "Support",
+  { label: "Live Standings", href: "#standings" },
+  { label: "Schedule", href: "#schedule" },
+  { label: "Telemetry", href: "#telemetry" },
+  { label: "News", href: "#news" },
+  { label: "Community", href: "#community" },
+  { label: "Support", href: "#support" },
 ];
 
 export function CheckerFlag({ className = "" }: { className?: string }) {
@@ -30,7 +30,7 @@ export function CheckerFlag({ className = "" }: { className?: string }) {
 
 function Logo() {
   return (
-    <a href="#" className="flex items-center gap-2 group" aria-label="F1 Hub home">
+    <a href="/" className="flex items-center gap-2 group" aria-label="F1 Hub home">
       <CheckerFlag className="w-7 h-7 text-race-accent group-hover:text-red-500 transition-colors" />
       <span className="font-extrabold tracking-tight text-xl text-white">
         F1{" "}
@@ -65,13 +65,13 @@ export default function Navbar() {
         <div className="flex items-center gap-10">
           <Logo />
           <ul className="hidden lg:flex items-center gap-7 text-sm font-medium text-white/75">
-            {NAV_LINKS.map((label) => (
-              <li key={label}>
+            {NAV_LINKS.map((link) => (
+              <li key={link.href}>
                 <a
-                  href="#"
+                  href={link.href}
                   className="transition-colors hover:text-white"
                 >
-                  {label}
+                  {link.label}
                 </a>
               </li>
             ))}
@@ -80,14 +80,14 @@ export default function Navbar() {
 
         <div className="flex items-center gap-3">
           <a
-            href="#"
+            href="#support"
             className="hidden sm:inline-flex items-center gap-2 rounded-full bg-white text-[#0c0c14] px-4 py-2 text-sm font-semibold transition-all hover:bg-white/90 hover:shadow-lg hover:shadow-white/10 active:scale-95"
           >
             <CheckerFlag className="w-4 h-4 text-race-accent" />
             Open F1 Hub
           </a>
           <a
-            href="#"
+            href="#support"
             className="hidden md:inline-flex rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-white/10 active:scale-95"
           >
             Get Started
@@ -112,16 +112,17 @@ export default function Navbar() {
       {menuOpen && (
         <div className="lg:hidden bg-[#0c0c14]/95 backdrop-blur-md border-b border-white/10">
           <ul className="px-4 py-4 space-y-3 text-white/80 font-medium">
-            {NAV_LINKS.map((label) => (
-              <li key={label}>
-                <a href="#" className="block py-1 hover:text-white">
-                  {label}
+            {NAV_LINKS.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} onClick={() => setMenuOpen(false)} className="block py-1 hover:text-white">
+                  {link.label}
                 </a>
               </li>
             ))}
             <li>
               <a
-                href="#"
+                href="#support"
+                onClick={() => setMenuOpen(false)}
                 className="block mt-3 rounded-full bg-white text-[#0c0c14] px-4 py-2 text-sm font-semibold text-center"
               >
                 Open F1 Hub
