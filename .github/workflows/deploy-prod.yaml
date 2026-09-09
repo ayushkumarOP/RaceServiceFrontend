@@ -15,7 +15,7 @@ jobs:
 
     env:
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GAR_LOCATION: us-central1
+      GAR_LOCATION: asia-south1
       GAR_REPOSITORY: raceservice-frontend
       IMAGE_NAME: raceservice-frontend
       IMAGE_TAG: prod-${{ github.sha }}
