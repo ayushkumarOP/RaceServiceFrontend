@@ -53,9 +53,22 @@ jobs:
           docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:dev-latest
 
+      - name: Build frontend for App Engine
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy development service to App Engine
+        run: |
+          gcloud app deploy app-dev.yaml \
+            --project=${{ env.PROJECT_ID }} \
+            --version=${{ env.IMAGE_TAG }} \
+            --promote \
+            --quiet
+
       - name: Output image info
         run: |
-          echo "🚀 Dev image built and pushed successfully!"
+          echo "🚀 Dev image built, pushed, and deployed successfully!"
           echo "Image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
-
+          echo "App Engine service: raceservice-frontend-dev"
 
