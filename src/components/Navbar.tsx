@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { AuthSession } from "../services/auth";
 
 const NAV_LINKS = [
   { label: "Live Standings", href: "#standings" },
@@ -42,15 +43,31 @@ function Logo() {
   );
 }
 
-export default function Navbar() {
+type NavbarProps = {
+  session: AuthSession | null;
+  onSignIn: () => void;
+  onSignOut: () => void;
+};
+
+export default function Navbar({ session, onSignIn, onSignOut }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) setProfileOpen(false);
+    };
+    window.addEventListener("mousedown", onPointerDown);
+    return () => window.removeEventListener("mousedown", onPointerDown);
   }, []);
 
   return (
@@ -79,19 +96,20 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <a
-            href="#support"
-            className="hidden sm:inline-flex items-center gap-2 rounded-full bg-white text-[#0c0c14] px-4 py-2 text-sm font-semibold transition-all hover:bg-white/90 hover:shadow-lg hover:shadow-white/10 active:scale-95"
-          >
-            <CheckerFlag className="w-4 h-4 text-race-accent" />
-            Open F1 Hub
-          </a>
-          <a
-            href="#support"
-            className="hidden md:inline-flex rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-white/10 active:scale-95"
-          >
-            Get Started
-          </a>
+          {session ? (
+            <div className="relative hidden sm:block" ref={profileRef}>
+              <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 py-1.5 pl-1.5 pr-3 text-sm font-semibold transition hover:bg-white/10" aria-expanded={profileOpen} aria-haspopup="menu">
+                <img src={session.user.avatarUrl} alt="" className="h-7 w-7 rounded-full bg-white/10" />
+                <span className="max-w-28 truncate">{session.user.name}</span>
+              </button>
+              {profileOpen && <div role="menu" className="absolute right-0 mt-3 w-64 rounded-2xl border border-white/10 bg-[#1a1a26] p-2 shadow-2xl shadow-black/50">
+                <div className="border-b border-white/10 px-3 py-3"><p className="truncate font-semibold">{session.user.name}</p><p className="mt-1 truncate text-xs text-white/55">{session.user.email}</p></div>
+                <button type="button" onClick={onSignOut} className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-300 transition hover:bg-white/5" role="menuitem">Sign out</button>
+              </div>}
+            </div>
+          ) : (
+            <button type="button" onClick={onSignIn} className="hidden sm:inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#0c0c14] transition hover:bg-white/90">Sign in</button>
+          )}
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
@@ -120,13 +138,7 @@ export default function Navbar() {
               </li>
             ))}
             <li>
-              <a
-                href="#support"
-                onClick={() => setMenuOpen(false)}
-                className="block mt-3 rounded-full bg-white text-[#0c0c14] px-4 py-2 text-sm font-semibold text-center"
-              >
-                Open F1 Hub
-              </a>
+              {session ? <button type="button" onClick={onSignOut} className="mt-3 block w-full rounded-full bg-white px-4 py-2 text-center text-sm font-semibold text-[#0c0c14]">Sign out</button> : <button type="button" onClick={onSignIn} className="mt-3 block w-full rounded-full bg-white px-4 py-2 text-center text-sm font-semibold text-[#0c0c14]">Sign in</button>}
             </li>
           </ul>
         </div>
