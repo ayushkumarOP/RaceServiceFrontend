@@ -6,7 +6,7 @@ const NAV_LINKS = [
   { label: "Schedule", href: "#schedule" },
   { label: "Telemetry", href: "#telemetry" },
   { label: "News", href: "#news" },
-  { label: "Community", href: "#community" },
+  { label: "Community", href: "/forums" },
   { label: "Support", href: "#support" },
 ];
 
