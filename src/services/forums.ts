@@ -49,8 +49,10 @@ export type ForumThread = {
   isLocked: boolean;
   tags: ThreadTag[];
   raceId: string | null;
-  userVote: "up" | "down" | null;
+  userVote: VoteValue | null;
 };
+
+export type VoteValue = "upvote" | "downvote";
 
 type ForumListResponse = PaginatedResponse<Forum>;
 type ThreadListResponse = PaginatedResponse<ForumThread>;
@@ -83,4 +85,24 @@ export async function getForumThreads(forumId: string, cursor?: string | null, s
   if (!Array.isArray(payload.data) || !payload.pagination) throw new Error("The forum service returned an unexpected response.");
 
   return payload;
+}
+
+async function voteRequest(path: string, options: RequestInit) {
+  const response = await fetch(`${FORUM_API_URL}${path}`, options);
+  if (response.ok) return;
+
+  const payload = await response.json().catch(() => ({})) as ErrorResponse;
+  throw new Error(payload.message || "Unable to update your vote right now.");
+}
+
+export function setThreadVote(threadId: string, vote: VoteValue) {
+  return voteRequest(`/api/v1/threads/${encodeURIComponent(threadId)}/vote`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vote }),
+  });
+}
+
+export function removeThreadVote(threadId: string) {
+  return voteRequest(`/api/v1/threads/${encodeURIComponent(threadId)}/vote`, { method: "DELETE" });
 }

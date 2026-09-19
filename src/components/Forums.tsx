@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { getForums, getForumThreads, type Forum, type ForumThread, type Pagination } from "../services/forums";
+import { getForums, getForumThreads, removeThreadVote, setThreadVote, type Forum, type ForumThread, type Pagination, type VoteValue } from "../services/forums";
 
 type LoadState = "loading" | "ready" | "empty" | "error";
 
@@ -25,6 +25,8 @@ function useForumThreads(forumId: string) {
   const [reloadKey, setReloadKey] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState("");
+  const [votingThreadId, setVotingThreadId] = useState<string | null>(null);
+  const [voteError, setVoteError] = useState<{ threadId: string; message: string } | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     getForumThreads(forumId, undefined, controller.signal).then((response) => { if (!controller.signal.aborted) { setThreads(response.data); setPagination(response.pagination); setState(response.data.length ? "ready" : "empty"); } }).catch((reason: unknown) => { if (!controller.signal.aborted) { setError(reason instanceof Error ? reason.message : "Unable to load threads right now."); setState("error"); } });
@@ -40,7 +42,22 @@ function useForumThreads(forumId: string) {
       setPagination(response.pagination);
     } catch (reason) { setLoadMoreError(reason instanceof Error ? reason.message : "Unable to load more threads right now."); } finally { setLoadingMore(false); }
   }, [forumId, loadingMore, pagination]);
-  return { threads, pagination, state, error, retry, loadingMore, loadMoreError, loadMore };
+  const vote = useCallback(async (thread: ForumThread, voteValue: VoteValue) => {
+    if (votingThreadId) return;
+    const nextVote = thread.userVote === voteValue ? null : voteValue;
+    setVotingThreadId(thread.id);
+    setVoteError(null);
+    try {
+      if (nextVote) await setThreadVote(thread.id, nextVote);
+      else await removeThreadVote(thread.id);
+      setThreads((current) => current.map((item) => item.id === thread.id ? applyVote(item, nextVote) : item));
+    } catch (reason) {
+      setVoteError({ threadId: thread.id, message: reason instanceof Error ? reason.message : "Unable to update your vote right now." });
+    } finally {
+      setVotingThreadId(null);
+    }
+  }, [votingThreadId]);
+  return { threads, pagination, state, error, retry, loadingMore, loadMoreError, loadMore, votingThreadId, voteError, vote };
 }
 
 function PageShell({ children }: { children: ReactNode }) { return <main className="min-h-screen px-4 pb-16 pt-28 text-white sm:px-6 lg:px-8">{children}</main>; }
@@ -50,9 +67,15 @@ function formatDate(value: string) { const date = new Date(value); return Number
 function compact(value: number) { return new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(value); }
 function RetryButton({ onClick }: { onClick: () => void }) { return <button type="button" onClick={onClick} className="rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#0c0c14] transition hover:bg-white/90">Try again</button>; }
 
-function ThreadCard({ thread }: { thread: ForumThread }) {
+function applyVote(thread: ForumThread, nextVote: VoteValue | null): ForumThread {
+  const previousVote = thread.userVote;
+  const scoreChange = (nextVote === "upvote" ? 1 : nextVote === "downvote" ? -1 : 0) - (previousVote === "upvote" ? 1 : previousVote === "downvote" ? -1 : 0);
+  return { ...thread, userVote: nextVote, score: thread.score + scoreChange, upvoteCount: thread.upvoteCount + Number(nextVote === "upvote") - Number(previousVote === "upvote"), downvoteCount: thread.downvoteCount + Number(nextVote === "downvote") - Number(previousVote === "downvote") };
+}
+
+function ThreadCard({ thread, isVoting, voteError, onVote }: { thread: ForumThread; isVoting: boolean; voteError?: string; onVote: (vote: VoteValue) => void }) {
   const author = thread.author.displayName || thread.author.username;
-  return <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"><div className="flex gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10 text-sm font-extrabold text-white/75">{thread.author.avatarUrl ? <img src={thread.author.avatarUrl} alt="" className="h-full w-full object-cover" /> : author.slice(0, 1).toUpperCase()}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-extrabold leading-snug">{thread.title}</h2>{thread.isPinned && <span className="rounded-full bg-race-accent/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-race-accent">Pinned</span>}{thread.isLocked && <span className="rounded-full border border-amber-300/25 bg-amber-300/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-amber-200">Locked</span>}</div><p className="mt-2 text-sm text-white/55">Started by <span className="font-semibold text-white/80">{author}</span> · {formatDate(thread.createdAt)}</p><div className="mt-4 flex flex-wrap gap-2">{thread.tags.map((tag) => <span key={tag.id} className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-xs font-semibold text-white/65">{tag.name}</span>)}</div><div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-4 text-sm text-white/60"><span><strong className="text-white">{compact(thread.score)}</strong> score</span><span><strong className="text-white">{compact(thread.commentCount)}</strong> comments</span><span><strong className="text-white">{compact(thread.viewCount)}</strong> views</span><span className="sm:ml-auto">Last activity <strong className="font-semibold text-white/80">{formatDate(thread.lastActivityAt)}</strong></span></div></div></div></article>;
+  return <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"><div className="flex gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10 text-sm font-extrabold text-white/75">{thread.author.avatarUrl ? <img src={thread.author.avatarUrl} alt="" className="h-full w-full object-cover" /> : author.slice(0, 1).toUpperCase()}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-extrabold leading-snug">{thread.title}</h2>{thread.isPinned && <span className="rounded-full bg-race-accent/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-race-accent">Pinned</span>}{thread.isLocked && <span className="rounded-full border border-amber-300/25 bg-amber-300/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-amber-200">Locked</span>}</div><p className="mt-2 text-sm text-white/55">Started by <span className="font-semibold text-white/80">{author}</span> · {formatDate(thread.createdAt)}</p><div className="mt-4 flex flex-wrap gap-2">{thread.tags.map((tag) => <span key={tag.id} className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-xs font-semibold text-white/65">{tag.name}</span>)}</div><div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-4 text-sm text-white/60"><div className="flex items-center gap-2"><button type="button" onClick={() => onVote("upvote")} disabled={isVoting} aria-label={`Upvote (${compact(thread.upvoteCount)})`} aria-pressed={thread.userVote === "upvote"} className={`rounded-full border px-3 py-1.5 text-sm font-bold transition disabled:cursor-wait disabled:opacity-60 ${thread.userVote === "upvote" ? "border-emerald-300/50 bg-emerald-400/15 text-emerald-200" : "border-white/15 bg-black/20 text-white/70 hover:bg-white/10"}`}>↑ {compact(thread.upvoteCount)}</button><span className="min-w-8 text-center font-extrabold text-white">{compact(thread.score)}</span><button type="button" onClick={() => onVote("downvote")} disabled={isVoting} aria-label={`Downvote (${compact(thread.downvoteCount)})`} aria-pressed={thread.userVote === "downvote"} className={`rounded-full border px-3 py-1.5 text-sm font-bold transition disabled:cursor-wait disabled:opacity-60 ${thread.userVote === "downvote" ? "border-red-300/50 bg-red-400/15 text-red-200" : "border-white/15 bg-black/20 text-white/70 hover:bg-white/10"}`}>↓ {compact(thread.downvoteCount)}</button></div><span><strong className="text-white">{compact(thread.commentCount)}</strong> comments</span><span><strong className="text-white">{compact(thread.viewCount)}</strong> views</span><span className="sm:ml-auto">Last activity <strong className="font-semibold text-white/80">{formatDate(thread.lastActivityAt)}</strong></span></div>{voteError && <p role="alert" className="mt-3 text-sm text-red-200">{voteError}</p>}</div></div></article>;
 }
 
 export function ForumList({ onOpenForum }: { onOpenForum: (forumId: string) => void }) {
@@ -72,6 +95,6 @@ export function ForumPlaceholder({ forumId, onBack }: { forumId: string; onBack:
   const forum = forumRequest.forums.find((item) => item.id === forumId);
   if (!forum) return <PageShell><StatusPanel title="This forum does not exist" message="The forum may have been removed, or the address may be incorrect." action={<button type="button" onClick={onBack} className="rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#0c0c14]">Return to forums</button>} /></PageShell>;
   const sorted = [...threadRequest.threads].sort((left, right) => Number(right.isPinned) - Number(left.isPinned) || new Date(right.lastActivityAt).getTime() - new Date(left.lastActivityAt).getTime());
-  const content = threadRequest.state === "loading" ? <StatusPanel title="Loading threads" message="Bringing the latest discussion onto the grid…" /> : threadRequest.state === "error" ? <StatusPanel title="Threads are unavailable" message={threadRequest.error} action={<RetryButton onClick={threadRequest.retry} />} /> : threadRequest.state === "empty" ? <StatusPanel title="No threads yet" message="This forum has no conversations yet. Check back soon." /> : <div className="grid gap-4">{sorted.map((thread) => <ThreadCard key={thread.id} thread={thread} />)}</div>;
+  const content = threadRequest.state === "loading" ? <StatusPanel title="Loading threads" message="Bringing the latest discussion onto the grid…" /> : threadRequest.state === "error" ? <StatusPanel title="Threads are unavailable" message={threadRequest.error} action={<RetryButton onClick={threadRequest.retry} />} /> : threadRequest.state === "empty" ? <StatusPanel title="No threads yet" message="This forum has no conversations yet. Check back soon." /> : <div className="grid gap-4">{sorted.map((thread) => <ThreadCard key={thread.id} thread={thread} isVoting={threadRequest.votingThreadId === thread.id} voteError={threadRequest.voteError?.threadId === thread.id ? threadRequest.voteError.message : undefined} onVote={(vote) => threadRequest.vote(thread, vote)} />)}</div>;
   return <PageShell><section className="mx-auto max-w-5xl"><button type="button" onClick={onBack} className="text-sm font-bold text-race-accent transition hover:text-red-300">← All forums</button><p className="mt-7 text-xs font-bold uppercase tracking-[0.25em] text-race-accent">Forum</p><h1 className="mt-3 text-4xl font-extrabold tracking-tight sm:text-5xl">{forum.name}</h1><p className="mt-3 max-w-3xl text-lg leading-relaxed text-white/65">{forum.description}</p><div className="mt-10">{content}</div>{threadRequest.state === "ready" && threadRequest.pagination?.hasMore && <div className="mt-8 text-center">{threadRequest.loadMoreError && <p role="alert" className="mb-3 text-sm text-red-200">{threadRequest.loadMoreError}</p>}<button type="button" onClick={threadRequest.loadMore} disabled={threadRequest.loadingMore} className="rounded-full border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-60">{threadRequest.loadingMore ? "Loading threads…" : "Load more threads"}</button></div>}</section></PageShell>;
 }
