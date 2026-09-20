@@ -78,7 +78,14 @@ type CommentListResponse = PaginatedResponse<ForumComment>;
 
 type ErrorResponse = {
   message?: string;
+  error?: {
+    message?: string;
+  };
 };
+
+function getErrorMessage(payload: ErrorResponse, fallback: string) {
+  return payload.message || payload.error?.message || fallback;
+}
 
 const DEFAULT_FORUM_API_URL = "https://forumservice-942724250878.asia-south1.run.app";
 const FORUM_API_URL = (import.meta.env.VITE_FORUM_API_URL || DEFAULT_FORUM_API_URL).replace(/\/$/, "");
@@ -87,7 +94,7 @@ export async function getForums(signal?: AbortSignal): Promise<Forum[]> {
   const response = await fetch(`${FORUM_API_URL}/api/v1/forums`, { signal });
   const payload = (await response.json()) as ForumListResponse & ErrorResponse;
 
-  if (!response.ok) throw new Error(payload.message || "Unable to load forums right now.");
+  if (!response.ok) throw new Error(getErrorMessage(payload, "Unable to load forums right now."));
   if (!Array.isArray(payload.data)) throw new Error("The forum service returned an unexpected response.");
 
   return payload.data;
@@ -100,7 +107,7 @@ export async function getForumThreads(forumId: string, cursor?: string | null, s
   const response = await fetch(`${FORUM_API_URL}/api/v1/forums/${encodeURIComponent(forumId)}/threads${query}`, { signal });
   const payload = (await response.json()) as ThreadListResponse & ErrorResponse;
 
-  if (!response.ok) throw new Error(payload.message || "Unable to load threads right now.");
+  if (!response.ok) throw new Error(getErrorMessage(payload, "Unable to load threads right now."));
   if (!Array.isArray(payload.data) || !payload.pagination) throw new Error("The forum service returned an unexpected response.");
 
   return payload;
@@ -114,7 +121,7 @@ export async function getThreadComments(threadId: string, cursor?: string | null
   const response = await fetch(`${FORUM_API_URL}/api/v1/threads/${encodeURIComponent(threadId)}/comments${query}`, { signal });
   const payload = (await response.json()) as CommentListResponse & ErrorResponse;
 
-  if (!response.ok) throw new Error(payload.message || "Unable to load comments right now.");
+  if (!response.ok) throw new Error(getErrorMessage(payload, "Unable to load comments right now."));
   if (!Array.isArray(payload.data) || !payload.pagination) throw new Error("The forum service returned an unexpected response.");
 
   return payload;
@@ -125,7 +132,7 @@ async function voteRequest(path: string, options: RequestInit) {
   if (response.ok) return;
 
   const payload = await response.json().catch(() => ({})) as ErrorResponse;
-  throw new Error(payload.message || "Unable to update your vote right now.");
+  throw new Error(getErrorMessage(payload, "Unable to update your vote right now."));
 }
 
 export function setThreadVote(threadId: string, vote: VoteValue) {
