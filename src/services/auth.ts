@@ -1,51 +1,67 @@
 export type AuthSession = {
-  user: {
-    id: number;
-    name: string;
-    email: string;
-    avatarUrl: string;
-  };
+  user: { id: number; name: string; email: string; avatarUrl: string };
   accessToken: string;
   refreshToken: string;
 };
 
-type DummyJsonLoginResponse = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  image: string;
-  accessToken: string;
-  refreshToken: string;
+type UserServiceAuthResponse = {
+  accessToken?: string;
+  refreshToken?: string;
+  token?: string;
+  user?: { id?: number | string; username?: string; name?: string; email?: string; avatarUrl?: string };
   message?: string;
+  error?: { message?: string };
+  errors?: Record<string, string[] | string>;
+  title?: string;
 };
 
 const SESSION_KEY = "f1-hub.auth-session";
-const AUTH_ENDPOINT = "https://dummyjson.com/auth/login";
+const DEFAULT_USER_API_URL = "https://userservice-942724250878.asia-south1.run.app";
+const USER_API_URL = (import.meta.env.VITE_USER_API_URL || DEFAULT_USER_API_URL).replace(/\/$/, "");
 
-export async function signIn(username: string, password: string): Promise<AuthSession> {
-  const response = await fetch(AUTH_ENDPOINT, {
+function responseMessage(payload: UserServiceAuthResponse, fallback: string) {
+  if (payload.message) return payload.message;
+  if (payload.error?.message) return payload.error.message;
+  if (payload.title) return payload.title;
+  const firstError = payload.errors && Object.values(payload.errors).flat().find(Boolean);
+  return firstError || fallback;
+}
+
+async function readResponse(response: Response): Promise<UserServiceAuthResponse> {
+  if (!(response.headers.get("content-type") || "").includes("application/json")) return {};
+  return (await response.json().catch(() => ({}))) as UserServiceAuthResponse;
+}
+
+function sessionFromResponse(payload: UserServiceAuthResponse, emailOrUsername: string): AuthSession {
+  const user = payload.user;
+  const email = user?.email || (emailOrUsername.includes("@") ? emailOrUsername : "");
+  const name = user?.name || user?.username || (email ? email.split("@")[0] : emailOrUsername);
+  return {
+    user: { id: typeof user?.id === "number" ? user.id : Number(user?.id) || 0, name, email, avatarUrl: user?.avatarUrl || "" },
+    accessToken: payload.accessToken || payload.token || "",
+    refreshToken: payload.refreshToken || "",
+  };
+}
+
+export async function signIn(emailOrUsername: string, password: string): Promise<AuthSession> {
+  const response = await fetch(`${USER_API_URL}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password, expiresInMins: 60 }),
+    body: JSON.stringify({ emailOrUsername, password }),
   });
+  const payload = await readResponse(response);
+  if (!response.ok) throw new Error(responseMessage(payload, "Unable to sign in with those credentials."));
+  return sessionFromResponse(payload, emailOrUsername);
+}
 
-  const payload = (await response.json()) as DummyJsonLoginResponse;
-
-  if (!response.ok) {
-    throw new Error(payload.message || "Unable to sign in with those credentials.");
-  }
-
-  return {
-    user: {
-      id: payload.id,
-      name: `${payload.firstName} ${payload.lastName}`.trim(),
-      email: payload.email,
-      avatarUrl: payload.image,
-    },
-    accessToken: payload.accessToken,
-    refreshToken: payload.refreshToken,
-  };
+export async function register(email: string, username: string, password: string, confirmPassword: string): Promise<void> {
+  const response = await fetch(`${USER_API_URL}/api/v1/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, username, password, confirmPassword }),
+  });
+  const payload = await readResponse(response);
+  if (!response.ok) throw new Error(responseMessage(payload, "Unable to create your account. Please try again."));
 }
 
 export function getStoredSession(): AuthSession | null {
