@@ -52,7 +52,7 @@ export type ForumThread = {
   userVote: VoteValue | null;
 };
 
-export type VoteValue = "upvote" | "downvote";
+export type VoteValue = "up" | "down";
 
 export type ForumComment = {
   id: string;
