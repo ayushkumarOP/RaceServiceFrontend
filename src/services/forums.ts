@@ -54,8 +54,27 @@ export type ForumThread = {
 
 export type VoteValue = "upvote" | "downvote";
 
+export type ForumComment = {
+  id: string;
+  threadId: string;
+  parentCommentId: string | null;
+  author: ThreadAuthor;
+  content: { text: string | null };
+  score: number;
+  upvoteCount: number;
+  downvoteCount: number;
+  replyCount: number;
+  depth: number;
+  createdAt: string;
+  updatedAt: string | null;
+  isEdited: boolean;
+  isDeleted: boolean;
+  userVote: VoteValue | null;
+};
+
 type ForumListResponse = PaginatedResponse<Forum>;
 type ThreadListResponse = PaginatedResponse<ForumThread>;
+type CommentListResponse = PaginatedResponse<ForumComment>;
 
 type ErrorResponse = {
   message?: string;
@@ -87,6 +106,20 @@ export async function getForumThreads(forumId: string, cursor?: string | null, s
   return payload;
 }
 
+export async function getThreadComments(threadId: string, cursor?: string | null, pageSize?: number, signal?: AbortSignal): Promise<CommentListResponse> {
+  const params = new URLSearchParams();
+  if (cursor) params.set("cursor", cursor);
+  if (pageSize) params.set("pageSize", String(pageSize));
+  const query = params.size ? `?${params.toString()}` : "";
+  const response = await fetch(`${FORUM_API_URL}/api/v1/threads/${encodeURIComponent(threadId)}/comments${query}`, { signal });
+  const payload = (await response.json()) as CommentListResponse & ErrorResponse;
+
+  if (!response.ok) throw new Error(payload.message || "Unable to load comments right now.");
+  if (!Array.isArray(payload.data) || !payload.pagination) throw new Error("The forum service returned an unexpected response.");
+
+  return payload;
+}
+
 async function voteRequest(path: string, options: RequestInit) {
   const response = await fetch(`${FORUM_API_URL}${path}`, options);
   if (response.ok) return;
@@ -105,4 +138,16 @@ export function setThreadVote(threadId: string, vote: VoteValue) {
 
 export function removeThreadVote(threadId: string) {
   return voteRequest(`/api/v1/threads/${encodeURIComponent(threadId)}/vote`, { method: "DELETE" });
+}
+
+export function setCommentVote(commentId: string, vote: VoteValue) {
+  return voteRequest(`/api/v1/comments/${encodeURIComponent(commentId)}/vote`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vote }),
+  });
+}
+
+export function removeCommentVote(commentId: string) {
+  return voteRequest(`/api/v1/comments/${encodeURIComponent(commentId)}/vote`, { method: "DELETE" });
 }
