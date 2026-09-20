@@ -54,6 +54,8 @@ export type ForumThread = {
 
 export type VoteValue = "up" | "down";
 
+import { getStoredSession } from "./auth";
+
 export type ForumComment = {
   id: string;
   threadId: string;
@@ -90,8 +92,13 @@ function getErrorMessage(payload: ErrorResponse, fallback: string) {
 const DEFAULT_FORUM_API_URL = "https://forumservice-942724250878.asia-south1.run.app";
 const FORUM_API_URL = (import.meta.env.VITE_FORUM_API_URL || DEFAULT_FORUM_API_URL).replace(/\/$/, "");
 
+function authorizationHeaders(): Record<string, string> {
+  const accessToken = getStoredSession()?.accessToken;
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+}
+
 export async function getForums(signal?: AbortSignal): Promise<Forum[]> {
-  const response = await fetch(`${FORUM_API_URL}/api/v1/forums`, { signal });
+  const response = await fetch(`${FORUM_API_URL}/api/v1/forums`, { signal, headers: authorizationHeaders() });
   const payload = (await response.json()) as ForumListResponse & ErrorResponse;
 
   if (!response.ok) throw new Error(getErrorMessage(payload, "Unable to load forums right now."));
@@ -104,7 +111,7 @@ export async function getForumThreads(forumId: string, cursor?: string | null, s
   const params = new URLSearchParams();
   if (cursor) params.set("cursor", cursor);
   const query = params.size ? `?${params.toString()}` : "";
-  const response = await fetch(`${FORUM_API_URL}/api/v1/forums/${encodeURIComponent(forumId)}/threads${query}`, { signal });
+  const response = await fetch(`${FORUM_API_URL}/api/v1/forums/${encodeURIComponent(forumId)}/threads${query}`, { signal, headers: authorizationHeaders() });
   const payload = (await response.json()) as ThreadListResponse & ErrorResponse;
 
   if (!response.ok) throw new Error(getErrorMessage(payload, "Unable to load threads right now."));
@@ -118,7 +125,7 @@ export async function getThreadComments(threadId: string, cursor?: string | null
   if (cursor) params.set("cursor", cursor);
   if (pageSize) params.set("pageSize", String(pageSize));
   const query = params.size ? `?${params.toString()}` : "";
-  const response = await fetch(`${FORUM_API_URL}/api/v1/threads/${encodeURIComponent(threadId)}/comments${query}`, { signal });
+  const response = await fetch(`${FORUM_API_URL}/api/v1/threads/${encodeURIComponent(threadId)}/comments${query}`, { signal, headers: authorizationHeaders() });
   const payload = (await response.json()) as CommentListResponse & ErrorResponse;
 
   if (!response.ok) throw new Error(getErrorMessage(payload, "Unable to load comments right now."));
@@ -138,23 +145,23 @@ async function voteRequest(path: string, options: RequestInit) {
 export function setThreadVote(threadId: string, vote: VoteValue) {
   return voteRequest(`/api/v1/threads/${encodeURIComponent(threadId)}/vote`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authorizationHeaders() },
     body: JSON.stringify({ vote }),
   });
 }
 
 export function removeThreadVote(threadId: string) {
-  return voteRequest(`/api/v1/threads/${encodeURIComponent(threadId)}/vote`, { method: "DELETE" });
+  return voteRequest(`/api/v1/threads/${encodeURIComponent(threadId)}/vote`, { method: "DELETE", headers: authorizationHeaders() });
 }
 
 export function setCommentVote(commentId: string, vote: VoteValue) {
   return voteRequest(`/api/v1/comments/${encodeURIComponent(commentId)}/vote`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authorizationHeaders() },
     body: JSON.stringify({ vote }),
   });
 }
 
 export function removeCommentVote(commentId: string) {
-  return voteRequest(`/api/v1/comments/${encodeURIComponent(commentId)}/vote`, { method: "DELETE" });
+  return voteRequest(`/api/v1/comments/${encodeURIComponent(commentId)}/vote`, { method: "DELETE", headers: authorizationHeaders() });
 }

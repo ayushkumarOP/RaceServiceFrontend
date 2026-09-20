@@ -1,5 +1,5 @@
 export type AuthSession = {
-  user: { id: number; name: string; email: string; avatarUrl: string };
+  user: { id: string; name: string; email: string; avatarUrl: string };
   accessToken: string;
   refreshToken: string;
 };
@@ -8,12 +8,14 @@ type UserServiceAuthResponse = {
   accessToken?: string;
   refreshToken?: string;
   token?: string;
-  user?: { id?: number | string; username?: string; name?: string; email?: string; avatarUrl?: string };
+  user?: { id?: string; username?: string; displayName?: string; name?: string; email?: string; avatarUrl?: string };
   message?: string;
   error?: { message?: string };
   errors?: Record<string, string[] | string>;
   title?: string;
 };
+
+type UserServiceEnvelope = { data?: UserServiceAuthResponse } & UserServiceAuthResponse;
 
 const SESSION_KEY = "f1-hub.auth-session";
 const DEFAULT_USER_API_URL = "https://userservice-942724250878.asia-south1.run.app";
@@ -29,15 +31,16 @@ function responseMessage(payload: UserServiceAuthResponse, fallback: string) {
 
 async function readResponse(response: Response): Promise<UserServiceAuthResponse> {
   if (!(response.headers.get("content-type") || "").includes("application/json")) return {};
-  return (await response.json().catch(() => ({}))) as UserServiceAuthResponse;
+  const payload = (await response.json().catch(() => ({}))) as UserServiceEnvelope;
+  return payload.data || payload;
 }
 
 function sessionFromResponse(payload: UserServiceAuthResponse, emailOrUsername: string): AuthSession {
   const user = payload.user;
   const email = user?.email || (emailOrUsername.includes("@") ? emailOrUsername : "");
-  const name = user?.name || user?.username || (email ? email.split("@")[0] : emailOrUsername);
+  const name = user?.displayName || user?.name || user?.username || (email ? email.split("@")[0] : emailOrUsername);
   return {
-    user: { id: typeof user?.id === "number" ? user.id : Number(user?.id) || 0, name, email, avatarUrl: user?.avatarUrl || "" },
+    user: { id: user?.id || "", name, email, avatarUrl: user?.avatarUrl || "" },
     accessToken: payload.accessToken || payload.token || "",
     refreshToken: payload.refreshToken || "",
   };

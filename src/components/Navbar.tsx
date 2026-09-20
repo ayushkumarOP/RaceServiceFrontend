@@ -99,7 +99,7 @@ export default function Navbar({ session, onSignIn, onSignOut }: NavbarProps) {
           {session ? (
             <div className="relative hidden sm:block" ref={profileRef}>
               <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 py-1.5 pl-1.5 pr-3 text-sm font-semibold transition hover:bg-white/10" aria-expanded={profileOpen} aria-haspopup="menu">
-                <img src={session.user.avatarUrl} alt="" className="h-7 w-7 rounded-full bg-white/10" />
+                {session.user.avatarUrl ? <img src={session.user.avatarUrl} alt="" className="h-7 w-7 rounded-full bg-white/10" /> : <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">{session.user.name.slice(0, 1).toUpperCase()}</span>}
                 <span className="max-w-28 truncate">{session.user.name}</span>
               </button>
               {profileOpen && <div role="menu" className="absolute right-0 mt-3 w-64 rounded-2xl border border-white/10 bg-[#1a1a26] p-2 shadow-2xl shadow-black/50">
