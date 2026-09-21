@@ -46,10 +46,11 @@ function Logo() {
 type NavbarProps = {
   session: AuthSession | null;
   onSignIn: () => void;
+  onProfile: () => void;
   onSignOut: () => void;
 };
 
-export default function Navbar({ session, onSignIn, onSignOut }: NavbarProps) {
+export default function Navbar({ session, onSignIn, onProfile, onSignOut }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -99,11 +100,12 @@ export default function Navbar({ session, onSignIn, onSignOut }: NavbarProps) {
           {session ? (
             <div className="relative hidden sm:block" ref={profileRef}>
               <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 py-1.5 pl-1.5 pr-3 text-sm font-semibold transition hover:bg-white/10" aria-expanded={profileOpen} aria-haspopup="menu">
-                {session.user.avatarUrl ? <img src={session.user.avatarUrl} alt="" className="h-7 w-7 rounded-full bg-white/10" /> : <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">{session.user.name.slice(0, 1).toUpperCase()}</span>}
-                <span className="max-w-28 truncate">{session.user.name}</span>
+                {session.user.avatarUrl ? <img src={session.user.avatarUrl} alt="" className="h-7 w-7 rounded-full bg-white/10" /> : <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">{session.user.displayName.slice(0, 1).toUpperCase()}</span>}
+                <span className="max-w-28 truncate">{session.user.displayName}</span>
               </button>
               {profileOpen && <div role="menu" className="absolute right-0 mt-3 w-64 rounded-2xl border border-white/10 bg-[#1a1a26] p-2 shadow-2xl shadow-black/50">
-                <div className="border-b border-white/10 px-3 py-3"><p className="truncate font-semibold">{session.user.name}</p><p className="mt-1 truncate text-xs text-white/55">{session.user.email}</p></div>
+                <div className="border-b border-white/10 px-3 py-3"><p className="truncate font-semibold">{session.user.displayName}</p><p className="mt-1 truncate text-xs text-white/55">{session.user.email}</p></div>
+                <button type="button" onClick={onProfile} className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm font-semibold transition hover:bg-white/5" role="menuitem">Profile</button>
                 <button type="button" onClick={onSignOut} className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-300 transition hover:bg-white/5" role="menuitem">Sign out</button>
               </div>}
             </div>
