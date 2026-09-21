@@ -29,9 +29,9 @@ export function CheckerFlag({ className = "" }: { className?: string }) {
   );
 }
 
-function Logo() {
+function Logo({ onHome }: { onHome: () => void }) {
   return (
-    <a href="/" className="flex items-center gap-2 group" aria-label="F1 Hub home">
+    <a href="/home" onClick={(event) => { event.preventDefault(); onHome(); }} className="flex items-center gap-2 group" aria-label="F1 Hub home">
       <CheckerFlag className="w-7 h-7 text-race-accent group-hover:text-red-500 transition-colors" />
       <span className="font-extrabold tracking-tight text-xl text-white">
         F1{" "}
@@ -48,9 +48,10 @@ type NavbarProps = {
   onSignIn: () => void;
   onProfile: () => void;
   onSignOut: () => void;
+  onNavigate: (destination: string) => void;
 };
 
-export default function Navbar({ session, onSignIn, onProfile, onSignOut }: NavbarProps) {
+export default function Navbar({ session, onSignIn, onProfile, onSignOut, onNavigate }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -81,12 +82,13 @@ export default function Navbar({ session, onSignIn, onProfile, onSignOut }: Navb
     >
       <nav className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
         <div className="flex items-center gap-10">
-          <Logo />
+          <Logo onHome={() => onNavigate("/home")} />
           <ul className="hidden lg:flex items-center gap-7 text-sm font-medium text-white/75">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <a
                   href={link.href}
+                  onClick={(event) => { if (link.href.startsWith("/")) { event.preventDefault(); onNavigate(link.href); } }}
                   className="transition-colors hover:text-white"
                 >
                   {link.label}
@@ -134,7 +136,7 @@ export default function Navbar({ session, onSignIn, onProfile, onSignOut }: Navb
           <ul className="px-4 py-4 space-y-3 text-white/80 font-medium">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
-                <a href={link.href} onClick={() => setMenuOpen(false)} className="block py-1 hover:text-white">
+                <a href={link.href} onClick={(event) => { setMenuOpen(false); if (link.href.startsWith("/")) { event.preventDefault(); onNavigate(link.href); } }} className="block py-1 hover:text-white">
                   {link.label}
                 </a>
               </li>

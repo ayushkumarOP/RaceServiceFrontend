@@ -1,3 +1,5 @@
+import { followInternalLink } from "../navigation";
+
 export default function NotFound() {
   return (
     <main className="min-h-screen bg-[#0c0c14] px-4 py-24 text-white">
@@ -10,7 +12,8 @@ export default function NotFound() {
           The page may have moved, or the address may be incorrect.
         </p>
         <a
-          href="/"
+          href="/home"
+          onClick={(event) => followInternalLink(event, "/home")}
           className="mt-8 inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#0c0c14] transition hover:bg-white/90"
         >
           Return to F1 Hub

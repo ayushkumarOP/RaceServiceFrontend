@@ -86,7 +86,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0c0c14] text-white font-sans">
-      <Navbar session={session} onSignIn={() => { setIsGuest(false); navigate("/"); }} onProfile={() => navigate("/profile")} onSignOut={() => { userSigningOut.current = true; void signOut().finally(() => { userSigningOut.current = false; }); setSession(null); setSessionExpired(false); setIsGuest(false); navigate("/"); }} />
+      <Navbar session={session} onSignIn={() => { setIsGuest(false); navigate("/"); }} onProfile={() => navigate("/profile")} onNavigate={navigate} onSignOut={() => { userSigningOut.current = true; void signOut().finally(() => { userSigningOut.current = false; }); setSession(null); setSessionExpired(false); setIsGuest(false); navigate("/"); }} />
       {isProfile ? <Profile /> : isForumList ? <ForumList onOpenForum={(nextForumId) => navigate(`/forums/${nextForumId}`)} /> : isForumDetail && forumId ? <ForumPlaceholder forumId={forumId} onBack={() => navigate("/forums")} /> : <><main>
         <Hero />
         {FEATURES.map((feature, index) => (
