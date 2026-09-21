@@ -1,67 +1,28 @@
-export type AuthSession = {
-  user: {
-    id: number;
-    name: string;
-    email: string;
-    avatarUrl: string;
-  };
-  accessToken: string;
-  refreshToken: string;
-};
+export type UserProfile = { id: string; email: string; username: string; displayName: string; avatarUrl: string; bio: string; emailVerified?: boolean; status?: string; createdAt?: string; lastLoginAt?: string };
+export type AuthSession = { user: UserProfile; accessToken: string; refreshToken: string; expiresAt: number };
+type ApiData = { accessToken?: string; refreshToken?: string; expiresIn?: number; token?: string; user?: Partial<UserProfile>; message?: string; error?: { message?: string }; errors?: Record<string, string[] | string>; title?: string };
+type ApiEnvelope = ApiData & { data?: ApiData };
+export type ProfileUpdate = Pick<UserProfile, "displayName" | "avatarUrl" | "bio">;
 
-type DummyJsonLoginResponse = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  image: string;
-  accessToken: string;
-  refreshToken: string;
-  message?: string;
-};
+const DEFAULT_USER_API_URL = "https://userservice-942724250878.asia-south1.run.app";
+const USER_API_URL = (import.meta.env.VITE_USER_API_URL || DEFAULT_USER_API_URL).replace(/\/$/, "");
+const REFRESH_EARLY_MS = 30_000;
+let activeSession: AuthSession | null = null;
+let refreshing: Promise<AuthSession | null> | null = null;
+let sessionListener: ((session: AuthSession | null) => void) | null = null;
 
-const SESSION_KEY = "f1-hub.auth-session";
-const AUTH_ENDPOINT = "https://dummyjson.com/auth/login";
+export function setSessionListener(listener: ((session: AuthSession | null) => void) | null) { sessionListener = listener; }
+export function getSession() { return activeSession; }
+function setSession(nextSession: AuthSession | null) { activeSession = nextSession; sessionListener?.(nextSession); }
+function message(payload: ApiData, fallback: string) { const fieldError = payload.errors && Object.values(payload.errors).flat().find(Boolean); return payload.message || payload.error?.message || payload.title || fieldError || fallback; }
+async function readPayload(response: Response): Promise<ApiData> { if (!(response.headers.get("content-type") || "").includes("application/json")) return {}; const envelope = (await response.json().catch(() => ({}))) as ApiEnvelope; return envelope.data || envelope; }
+function profileFrom(user: Partial<UserProfile> | undefined, fallback: string): UserProfile { const email = user?.email || (fallback.includes("@") ? fallback : ""); const displayName = user?.displayName || user?.username || (email ? email.split("@")[0] : fallback); return { id: user?.id || "", email, username: user?.username || displayName, displayName, avatarUrl: user?.avatarUrl || "", bio: user?.bio || "", emailVerified: user?.emailVerified, status: user?.status, createdAt: user?.createdAt, lastLoginAt: user?.lastLoginAt }; }
+function authSessionFrom(payload: ApiData, fallback: string, existing?: AuthSession): AuthSession { const accessToken = payload.accessToken || payload.token; if (!accessToken) throw new Error("The user service did not return an access token."); return { user: profileFrom(payload.user || existing?.user, fallback), accessToken, refreshToken: payload.refreshToken || existing?.refreshToken || "", expiresAt: Date.now() + (payload.expiresIn || 900) * 1000 }; }
 
-export async function signIn(username: string, password: string): Promise<AuthSession> {
-  const response = await fetch(AUTH_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password, expiresInMins: 60 }),
-  });
-
-  const payload = (await response.json()) as DummyJsonLoginResponse;
-
-  if (!response.ok) {
-    throw new Error(payload.message || "Unable to sign in with those credentials.");
-  }
-
-  return {
-    user: {
-      id: payload.id,
-      name: `${payload.firstName} ${payload.lastName}`.trim(),
-      email: payload.email,
-      avatarUrl: payload.image,
-    },
-    accessToken: payload.accessToken,
-    refreshToken: payload.refreshToken,
-  };
-}
-
-export function getStoredSession(): AuthSession | null {
-  try {
-    const rawSession = window.localStorage.getItem(SESSION_KEY);
-    return rawSession ? (JSON.parse(rawSession) as AuthSession) : null;
-  } catch {
-    window.localStorage.removeItem(SESSION_KEY);
-    return null;
-  }
-}
-
-export function saveSession(session: AuthSession) {
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-}
-
-export function clearSession() {
-  window.localStorage.removeItem(SESSION_KEY);
-}
+export async function signIn(emailOrUsername: string, password: string): Promise<AuthSession> { const response = await fetch(`${USER_API_URL}/api/v1/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ emailOrUsername, password }) }); const payload = await readPayload(response); if (!response.ok) throw new Error(message(payload, "Unable to sign in with those credentials.")); const nextSession = authSessionFrom(payload, emailOrUsername); setSession(nextSession); return nextSession; }
+export async function register(email: string, username: string, password: string, confirmPassword: string) { const response = await fetch(`${USER_API_URL}/api/v1/auth/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, username, password, confirmPassword }) }); const payload = await readPayload(response); if (!response.ok) throw new Error(message(payload, "Unable to create your account. Please try again.")); }
+export async function refreshSession(): Promise<AuthSession | null> { if (!activeSession?.refreshToken) return null; if (refreshing) return refreshing; refreshing = (async () => { const current = activeSession; if (!current) return null; const response = await fetch(`${USER_API_URL}/api/v1/auth/refresh`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refreshToken: current.refreshToken }) }); const payload = await readPayload(response); if (!response.ok) { setSession(null); return null; } const nextSession = authSessionFrom(payload, current.user.email || current.user.username, current); setSession(nextSession); return nextSession; })().finally(() => { refreshing = null; }); return refreshing; }
+export async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> { let current = activeSession; if (current && current.expiresAt - Date.now() <= REFRESH_EARLY_MS) current = await refreshSession(); const request = async (session: AuthSession | null) => { const headers = new Headers(init.headers); if (session?.accessToken) headers.set("Authorization", `Bearer ${session.accessToken}`); return fetch(input, { ...init, headers }); }; let response = await request(current); if (response.status === 401 && current) { current = await refreshSession(); if (current) response = await request(current); } return response; }
+export async function signOut() { const refreshToken = activeSession?.refreshToken; try { if (refreshToken) await fetch(`${USER_API_URL}/api/v1/auth/logout`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refreshToken }) }); } finally { setSession(null); } }
+export async function getMyProfile(): Promise<UserProfile> { const response = await authenticatedFetch(`${USER_API_URL}/api/v1/users/me`); const payload = await readPayload(response); if (!response.ok) throw new Error(message(payload, "Unable to load your profile.")); const profile = profileFrom(payload.user || (payload as Partial<UserProfile>), activeSession?.user.email || ""); if (activeSession) setSession({ ...activeSession, user: profile }); return profile; }
+export async function updateMyProfile(update: ProfileUpdate): Promise<UserProfile> { const response = await authenticatedFetch(`${USER_API_URL}/api/v1/users/me`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) }); const payload = await readPayload(response); if (!response.ok) throw new Error(message(payload, "Unable to update your profile.")); const profile = profileFrom(payload.user || { ...activeSession?.user, ...update }, activeSession?.user.email || ""); if (activeSession) setSession({ ...activeSession, user: profile }); return profile; }

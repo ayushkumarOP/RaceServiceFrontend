@@ -1,4 +1,5 @@
 import { CheckerFlag } from "./Navbar";
+import { followInternalLink } from "../navigation";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   { title: "Explore", links: [{ label: "Live Standings", href: "#standings" }, { label: "Race Calendar", href: "#schedule" }, { label: "Telemetry", href: "#telemetry" }, { label: "News Feed", href: "#news" }] },
@@ -13,7 +14,7 @@ export default function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
           {/* Brand */}
           <div>
-            <a href="/" className="flex items-center gap-2 group">
+            <a href="/home" onClick={(event) => followInternalLink(event, "/home")} className="flex items-center gap-2 group">
               <CheckerFlag className="w-7 h-7 text-race-accent" />
               <span className="font-extrabold text-xl text-white">
                 F1{" "}
