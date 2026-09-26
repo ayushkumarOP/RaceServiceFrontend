@@ -89,8 +89,11 @@ function getErrorMessage(payload: ErrorResponse, fallback: string) {
   return payload.message || payload.error?.message || fallback;
 }
 
-const DEFAULT_FORUM_API_URL = "https://forumservice-942724250878.asia-south1.run.app";
-const FORUM_API_URL = (import.meta.env.VITE_FORUM_API_URL || DEFAULT_FORUM_API_URL).replace(/\/$/, "");
+const FORUM_API_URL = import.meta.env.VITE_GATEWAY_URL?.replace(/\/$/, "");
+
+if (!FORUM_API_URL) {
+  throw new Error("VITE_GATEWAY_URL must be set to the public gateway URL.");
+}
 
 export async function getForums(signal?: AbortSignal): Promise<Forum[]> {
   const response = await authenticatedFetch(`${FORUM_API_URL}/api/v1/forums`, { signal });
