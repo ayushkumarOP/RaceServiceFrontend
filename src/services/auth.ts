@@ -4,8 +4,11 @@ type ApiData = { accessToken?: string; refreshToken?: string; expiresIn?: number
 type ApiEnvelope = ApiData & { data?: ApiData };
 export type ProfileUpdate = Pick<UserProfile, "displayName" | "avatarUrl" | "bio">;
 
-const DEFAULT_USER_API_URL = "https://userservice-942724250878.asia-south1.run.app";
-const USER_API_URL = (import.meta.env.VITE_USER_API_URL || DEFAULT_USER_API_URL).replace(/\/$/, "");
+const USER_API_URL = import.meta.env.VITE_GATEWAY_URL?.replace(/\/$/, "");
+
+if (!USER_API_URL) {
+  throw new Error("VITE_GATEWAY_URL must be set to the public gateway URL.");
+}
 const REFRESH_EARLY_MS = 30_000;
 let activeSession: AuthSession | null = null;
 let refreshing: Promise<AuthSession | null> | null = null;
