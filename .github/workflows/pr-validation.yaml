@@ -1,0 +1,44 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION }}
+  AR_REPO: ${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}
+  SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+  VITE_GATEWAY_URL: ${{ vars.VITE_GATEWAY_URL }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg VITE_ENV=production \
+            --build-arg VITE_GATEWAY_URL="$VITE_GATEWAY_URL" \
+            -t "$REGION-docker.pkg.dev/$PROJECT_ID/$AR_REPO/$SERVICE:${GITHUB_SHA}" \
+            .
