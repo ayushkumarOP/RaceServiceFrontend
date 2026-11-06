@@ -74,9 +74,33 @@ export type ForumComment = {
   userVote: VoteValue | null;
 };
 
+export type ForumThreadDetail = {
+  id: string;
+  forum: Pick<Forum, "id" | "name" | "slug">;
+  author: ThreadAuthor;
+  title: string;
+  slug: string;
+  score: number;
+  upvoteCount: number;
+  downvoteCount: number;
+  commentCount: number;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string | null;
+  lastActivityAt: string;
+  isPinned: boolean;
+  isLocked: boolean;
+  isDeleted: boolean;
+  userVote: VoteValue | null;
+  tags: ThreadTag[];
+  race: { id: string } | null;
+  rootComment: ForumComment | null;
+};
+
 type ForumListResponse = PaginatedResponse<Forum>;
 type ThreadListResponse = PaginatedResponse<ForumThread>;
 type CommentListResponse = PaginatedResponse<ForumComment>;
+type ThreadDetailResponse = { data: ForumThreadDetail };
 
 type ErrorResponse = {
   message?: string;
@@ -116,6 +140,16 @@ export async function getForumThreads(forumId: string, cursor?: string | null, s
   if (!Array.isArray(payload.data) || !payload.pagination) throw new Error("The forum service returned an unexpected response.");
 
   return payload;
+}
+
+export async function getThread(threadId: string, signal?: AbortSignal): Promise<ForumThreadDetail> {
+  const response = await authenticatedFetch(`${FORUM_API_URL}/api/v1/threads/${encodeURIComponent(threadId)}`, { signal });
+  const payload = (await response.json()) as ThreadDetailResponse & ErrorResponse;
+
+  if (!response.ok) throw new Error(getErrorMessage(payload, "Unable to load this thread right now."));
+  if (!payload.data || typeof payload.data.id !== "string") throw new Error("The forum service returned an unexpected response.");
+
+  return payload.data;
 }
 
 export async function getThreadComments(threadId: string, cursor?: string | null, pageSize?: number, signal?: AbortSignal): Promise<CommentListResponse> {

@@ -10,7 +10,7 @@ import NotFound from "./components/NotFound";
 import SupportSection from "./components/SupportSection";
 import Login from "./components/Login";
 import { getSession, setSessionListener, signOut, type AuthSession } from "./services/auth";
-import { ForumList, ForumPlaceholder } from "./components/Forums";
+import { ForumList, ForumPlaceholder, ThreadDetail } from "./components/Forums";
 import Profile from "./components/Profile";
 
 function App() {
@@ -24,12 +24,16 @@ function App() {
   const isHome = path === "/home";
   const isForumList = path === "/forums";
   const isProfile = path === "/profile";
+  const threadDetailMatch = path.match(/^\/forums\/([^/]+)\/threads\/([^/]+)$/);
   const forumDetailMatch = path.match(/^\/forums\/([^/]+)$/);
+  const threadForumId = threadDetailMatch?.[1] ?? null;
+  const threadId = threadDetailMatch?.[2] ?? null;
   const forumId = forumDetailMatch?.[1] ?? null;
   const isForumDetail = Boolean(forumId);
-  const isNotFound = !isLogin && !isHome && !isEmptyState && !isForumList && !isForumDetail && !isProfile;
-  const requiresSession = isHome || isForumList || isForumDetail || isProfile;
-  const requiresAuthenticatedForum = isForumList || isForumDetail;
+  const isThreadDetail = Boolean(threadForumId && threadId);
+  const isNotFound = !isLogin && !isHome && !isEmptyState && !isForumList && !isForumDetail && !isThreadDetail && !isProfile;
+  const requiresSession = isHome || isForumList || isForumDetail || isThreadDetail || isProfile;
+  const requiresAuthenticatedForum = isForumList || isForumDetail || isThreadDetail;
   const needsSignIn = requiresSession && !session && (!isGuest || requiresAuthenticatedForum);
 
   const navigate = (destination: string) => {
@@ -63,10 +67,12 @@ function App() {
           ? "Sign in | F1 Hub"
           : isForumList
             ? "Forums | F1 Hub"
-            : isForumDetail
+            : isThreadDetail
+              ? "Thread | F1 Hub"
+              : isForumDetail
               ? "Forum | F1 Hub"
               : "F1 Hub | Live Formula 1 Standings, Schedule & Telemetry";
-  }, [isEmptyState, isForumDetail, isForumList, isLogin, isNotFound, needsSignIn]);
+  }, [isEmptyState, isForumDetail, isForumList, isLogin, isNotFound, isThreadDetail, needsSignIn]);
 
   if (isNotFound) {
     return <NotFound />;
@@ -87,7 +93,7 @@ function App() {
   return (
     <div className="min-h-screen bg-[#0c0c14] text-white font-sans">
       <Navbar session={session} onSignIn={() => { setIsGuest(false); navigate("/"); }} onProfile={() => navigate("/profile")} onNavigate={navigate} onSignOut={() => { userSigningOut.current = true; void signOut().finally(() => { userSigningOut.current = false; }); setSession(null); setSessionExpired(false); setIsGuest(false); navigate("/"); }} />
-      {isProfile ? <Profile /> : isForumList ? <ForumList onOpenForum={(nextForumId) => navigate(`/forums/${nextForumId}`)} /> : isForumDetail && forumId ? <ForumPlaceholder forumId={forumId} onBack={() => navigate("/forums")} /> : <><main>
+      {isProfile ? <Profile /> : isForumList ? <ForumList onOpenForum={(nextForumId) => navigate(`/forums/${nextForumId}`)} /> : isThreadDetail && threadForumId && threadId ? <ThreadDetail forumId={threadForumId} threadId={threadId} onBack={(targetForumId) => navigate(`/forums/${targetForumId}`)} /> : isForumDetail && forumId ? <ForumPlaceholder forumId={forumId} onBack={() => navigate("/forums")} onOpenThread={(nextThreadId) => navigate(`/forums/${forumId}/threads/${nextThreadId}`)} /> : <><main>
         <Hero />
         {FEATURES.map((feature, index) => (
           <FeatureSection key={feature.id} feature={feature} index={index} />
