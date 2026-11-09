@@ -97,10 +97,18 @@ export type ForumThreadDetail = {
   rootComment: ForumComment | null;
 };
 
+export type CreateForumThreadInput = {
+  title: string;
+  content: { text: string };
+  tags: string[];
+  raceId: null;
+};
+
 type ForumListResponse = PaginatedResponse<Forum>;
 type ThreadListResponse = PaginatedResponse<ForumThread>;
 type CommentListResponse = PaginatedResponse<ForumComment>;
 type ThreadDetailResponse = { data: ForumThreadDetail };
+type CreateThreadResponse = { data: { id: string } };
 
 type ErrorResponse = {
   message?: string;
@@ -140,6 +148,20 @@ export async function getForumThreads(forumId: string, cursor?: string | null, s
   if (!Array.isArray(payload.data) || !payload.pagination) throw new Error("The forum service returned an unexpected response.");
 
   return payload;
+}
+
+export async function createForumThread(forumId: string, input: CreateForumThreadInput): Promise<{ id: string }> {
+  const response = await authenticatedFetch(`${FORUM_API_URL}/api/v1/forums/${encodeURIComponent(forumId)}/threads`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const payload = (await response.json().catch(() => ({}))) as CreateThreadResponse & ErrorResponse;
+
+  if (!response.ok) throw new Error(getErrorMessage(payload, "Unable to create your thread right now."));
+  if (!payload.data || typeof payload.data.id !== "string") throw new Error("The forum service returned an unexpected response.");
+
+  return payload.data;
 }
 
 export async function getThread(threadId: string, signal?: AbortSignal): Promise<ForumThreadDetail> {
